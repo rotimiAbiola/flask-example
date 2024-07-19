@@ -2,7 +2,7 @@
 
 ## Setup & Installation
 
-Make sure you have the latest version of Python installed.
+Make sure you have the latest versions of Python and Flask are installed.
 
 ```bash
 git clone <repo-url>
