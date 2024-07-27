@@ -57,27 +57,30 @@ runs:
         fi
         
         $SSH_CMD << EOF      
-          REPO_DIR="${GITHUB_REPOSITORY##*/}-${GITHUB_HEAD_REF}"
-          git clone https://${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git $REPO_DIR
-          cd $REPO_DIR
-          git checkout $GITHUB_HEAD_REF
+          # REPO_DIR="${GITHUB_REPOSITORY##*/}-${GITHUB_HEAD_REF}"
+          git clone https://github.com/Data-Bishop/flask-example.git testingabas
+          cd flask-example
           
           if ! command -v docker &> /dev/null; then
             sudo apt-get update
             sudo apt-get install -y docker.io
           fi
 
+          # Add current user to docker group
+          sudo usermod -aG docker $USER
+          newgrp docker
+
           # Clean up previous containers
-          docker ps -a | grep $REPO_DIR | awk '{print $1}' | xargs -r docker rm -f
+          sudo docker ps -a | grep $REPO_DIR | awk '{print $1}' | xargs -r docker rm -f
           
           # Kill any existing SSH tunnels for this port
           pkill -f "ssh -R $EXPOSED_PORT:localhost:$EXPOSED_PORT serveo.net"
           
           if [ -n "$DOCKERFILE" ]; then
-            docker build -t $REPO_DIR -f $DOCKERFILE .
-            docker run -d -p $EXPOSED_PORT:$EXPOSED_PORT --name $REPO_DIR $ENV_VARS $REPO_DIR
+            sudo docker build -t $REPO_DIR .
+            sudo docker run -d -p $EXPOSED_PORT:$EXPOSED_PORT --name $REPO_DIR $ENV_VARS $REPO_DIR
           else
-            docker run -d -p $EXPOSED_PORT:$EXPOSED_PORT -v $(pwd)/$DIR:/app -w /app --name $REPO_DIR $ENV_VARS alpine sh -c "$START_COMMAND"
+            sudo docker run -d -p $EXPOSED_PORT:$EXPOSED_PORT -v $(pwd)/$DIR:/app -w /app --name $REPO_DIR $ENV_VARS alpine sh -c "$START_COMMAND"
           fi
           
           # Set up tunneling using Serveo
@@ -88,6 +91,6 @@ runs:
         EOF
         
         if [ -n "$SSH_PRIVATE_KEY" ]; then
-          rm private_key.pem
+          sudo rm private_key.pem
         fi
       shell: bash
