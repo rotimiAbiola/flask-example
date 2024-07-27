@@ -58,10 +58,15 @@ runs:
         
         $SSH_CMD << EOF      
           REPO_DIR="${GITHUB_REPOSITORY##*/}-${GITHUB_HEAD_REF}"
-          git clone $GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git $REPO_DIR
+          git clone https://${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git $REPO_DIR
           cd $REPO_DIR
           git checkout $GITHUB_HEAD_REF
           
+          if ! command -v docker &> /dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y docker.io
+          fi
+
           # Clean up previous containers
           docker ps -a | grep $REPO_DIR | awk '{print $1}' | xargs -r docker rm -f
           
@@ -77,7 +82,7 @@ runs:
           
           # Set up tunneling using Serveo
           nohup ssh -R $EXPOSED_PORT:localhost:$EXPOSED_PORT serveo.net > serveo_output.log 2>&1 &
-          sleep 10  # Give Serveo some time to establish the tunnel
+          sleep 20  # Give Serveo some time to establish the tunnel
           SERVEO_URL=$(grep -o 'https://[^ ]*' serveo_output.log | head -n 1)
           echo "Deployment URL: $SERVEO_URL"
         EOF
