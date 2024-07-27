@@ -58,7 +58,7 @@ runs:
         
         $SSH_CMD << EOF      
           # REPO_DIR="${GITHUB_REPOSITORY##*/}-${GITHUB_HEAD_REF}"
-          git clone --branch testing123 https://github.com/Data-Bishop/flask-example.git
+          git clone --branch testingabas https://github.com/Data-Bishop/flask-example.git
           cd flask-example
           
           if ! command -v docker &> /dev/null; then
@@ -77,17 +77,18 @@ runs:
           pkill -f "ssh -R $EXPOSED_PORT:localhost:$EXPOSED_PORT serveo.net"
           
           if [ -n "$DOCKERFILE" ]; then
-            sudo docker build -t testing123 .
-            sudo docker run -d -p $EXPOSED_PORT:$EXPOSED_PORT testing123
+            sudo docker build -t testingabas .
+            sudo docker run -d -p $EXPOSED_PORT:$EXPOSED_PORT testingabas
           else
             sudo docker run -d -p $EXPOSED_PORT:$EXPOSED_PORT -v $(pwd)/$DIR:/app -w /app --name $REPO_DIR $ENV_VARS alpine sh -c "$START_COMMAND"
           fi
           
           # Set up tunneling using Serveo
-          nohup ssh -R $EXPOSED_PORT:localhost:$EXPOSED_PORT serveo.net > serveo_output.log 2>&1 &
-          sleep 20  # Give Serveo some time to establish the tunnel
-          SERVEO_URL=$(grep -o 'https://[^ ]*' serveo_output.log | head -n 1)
+          nohup ssh -tt -o StrictHostKeyChecking=no -R $EXPOSED_PORT:localhost:$EXPOSED_PORT serveo.net > serveo_output.log 2>&1 &
+          sleep 30  # Increased wait time for Serveo
+          SERVEO_URL=$(grep -oP 'Forwarding.*?https://\K[^ ]+' serveo_output.log | tail -n 1)
           echo "Deployment URL: $SERVEO_URL"
+
         EOF
         
         if [ -n "$SSH_PRIVATE_KEY" ]; then
