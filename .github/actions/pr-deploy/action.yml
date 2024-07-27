@@ -1,0 +1,88 @@
+name: 'PR Deploy'
+description: 'Automatically deploy pull requests to isolated Docker containers'
+inputs:
+  server_host:
+    description: 'SSH host of the server'
+    required: true
+  server_username:
+    description: 'SSH username'
+    required: true
+  server_password:
+    description: 'SSH password'
+    required: true
+  server_port:
+    description: 'SSH port'
+    required: true
+  ssh_private_key:
+    description: 'SSH private key for authentication'
+    required: false
+  dir:
+    description: 'Directory containing Dockerfile or start command'
+    default: '.'
+  dockerfile:
+    description: 'Path to Dockerfile'
+    required: false
+  start_command:
+    description: 'Command to start the application'
+    required: false
+  exposed_port:
+    description: 'Port to expose in the container'
+    required: true
+  env:
+    description: 'Environment variables for the container'
+    required: false
+
+runs:
+  using: 'composite'
+  steps:
+    - name: SSH into server and deploy
+      env:
+        HOST: ${{ inputs.server_host }}
+        USERNAME: ${{ inputs.server_username }}
+        PASSWORD: ${{ inputs.server_password }}
+        PORT: ${{ inputs.server_port }}
+        SSH_PRIVATE_KEY: ${{ inputs.ssh_private_key }}
+        DIR: ${{ inputs.dir }}
+        DOCKERFILE: ${{ inputs.dockerfile }}
+        START_COMMAND: ${{ inputs.start_command }}
+        EXPOSED_PORT: ${{ inputs.exposed_port }}
+        ENV_VARS: ${{ inputs.env }}
+      run: |
+        if [ -n "$SSH_PRIVATE_KEY" ]; then
+          echo "$SSH_PRIVATE_KEY" > private_key.pem
+          chmod 600 private_key.pem
+          SSH_CMD="ssh -i private_key.pem -o StrictHostKeyChecking=no -p $PORT $USERNAME@$HOST"
+        else
+          SSH_CMD="sshpass -p $PASSWORD ssh -o StrictHostKeyChecking=no -p $PORT $USERNAME@$HOST"
+        fi
+        
+        $SSH_CMD << EOF      
+          REPO_DIR="${GITHUB_REPOSITORY##*/}-${GITHUB_HEAD_REF}"
+          git clone $GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git $REPO_DIR
+          cd $REPO_DIR
+          git checkout $GITHUB_HEAD_REF
+          
+          # Clean up previous containers
+          docker ps -a | grep $REPO_DIR | awk '{print $1}' | xargs -r docker rm -f
+          
+          # Kill any existing SSH tunnels for this port
+          pkill -f "ssh -R $EXPOSED_PORT:localhost:$EXPOSED_PORT serveo.net"
+          
+          if [ -n "$DOCKERFILE" ]; then
+            docker build -t $REPO_DIR -f $DOCKERFILE .
+            docker run -d -p $EXPOSED_PORT:$EXPOSED_PORT --name $REPO_DIR $ENV_VARS $REPO_DIR
+          else
+            docker run -d -p $EXPOSED_PORT:$EXPOSED_PORT -v $(pwd)/$DIR:/app -w /app --name $REPO_DIR $ENV_VARS alpine sh -c "$START_COMMAND"
+          fi
+          
+          # Set up tunneling using Serveo
+          nohup ssh -R $EXPOSED_PORT:localhost:$EXPOSED_PORT serveo.net > serveo_output.log 2>&1 &
+          sleep 10  # Give Serveo some time to establish the tunnel
+          SERVEO_URL=$(grep -o 'https://[^ ]*' serveo_output.log | head -n 1)
+          echo "Deployment URL: $SERVEO_URL"
+        EOF
+        
+        if [ -n "$SSH_PRIVATE_KEY" ]; then
+          rm private_key.pem
+        fi
+      shell: bash
