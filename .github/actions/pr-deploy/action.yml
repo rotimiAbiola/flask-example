@@ -100,6 +100,7 @@ runs:
         START_COMMAND: ${{ inputs.start_command }}
         EXPOSED_PORT: ${{ inputs.exposed_port }}
         ENV_VARS: ${{ inputs.env }}
+        TIMESTAMP: $(date "+%Y%m%d%H%M%S")
       run: |
         if [ -n "$SSH_PRIVATE_KEY" ]; then
           echo "$SSH_PRIVATE_KEY" > private_key.pem
@@ -110,18 +111,16 @@ runs:
         fi
         
         $SSH_CMD << EOF   
-          export TIMESTAMP=$(date "+%Y%m%d%H%M%S")   
           export REPO_DIR="${GITHUB_REPOSITORY##*/}-${GITHUB_HEAD_REF}"
           export IMAGE_NAME="${GITHUB_HEAD_REF}${TIMESTAMP}"
 
-          echo "REPO DIR: $REPO_DIR"
           git clone --single-branch --branch $GITHUB_HEAD_REF $GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git
           mv flask-example temp
           cd temp
           
           if [ -n "$DOCKERFILE" ]; then
-            sudo docker build --label branch=${GITHUB_HEAD_REF} -t base .
-            sudo docker run -d --label branch=${GITHUB_HEAD_REF} -p $EXPOSED_PORT:$EXPOSED_PORT base
+            sudo docker build --label branch=${GITHUB_HEAD_REF} -t $GITHUB_HEAD_REF .
+            sudo docker run -d --label branch=${GITHUB_HEAD_REF} -p $EXPOSED_PORT:$EXPOSED_PORT $GITHUB_HEAD_REF
           else
             sudo docker run -d -p $EXPOSED_PORT:$EXPOSED_PORT -v $(pwd)/$DIR:/app -w /app --name $REPO_DIR $ENV_VARS alpine sh -c "$START_COMMAND"
           fi
