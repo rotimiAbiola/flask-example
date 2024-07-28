@@ -15,7 +15,7 @@ jobs:
           server_username: ${{ secrets.USERNAME }}
           server_password: ${{ secrets.PASSWORD }}
           server_port: ${{ secrets.PORT }}
-          ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
+          # ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
           dir: '.'
           dockerfile: 'Dockerfile'
           exposed_port: '5000'
