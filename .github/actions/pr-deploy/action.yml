@@ -62,6 +62,11 @@ runs:
             sudo apt-get install -y docker.io
           fi
 
+          if ! command -v python3 &> /dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y python3
+          fi
+
           # Add current user to docker group
           # sudo usermod -aG docker $USER
           # newgrp docker
