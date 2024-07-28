@@ -72,8 +72,18 @@ runs:
           # sudo usermod -aG docker $USER
           # newgrp docker
 
-          # Clean up previous containers
-          sudo docker ps -a | grep  | awk '{print $1}' | xargs -r docker rm -f
+          # Find all container IDs with the specified branch label
+          CONTAINERS=$(sudo docker ps -q --filter "label=branch=$GITHUB_BRANCH")
+
+          # Loop through each container and stop and remove it
+          while [ ! -z "$CONTAINERS" ]; do
+              for CONTAINER_ID in $CONTAINERS; do
+                  echo "Stopping container $CONTAINER_ID..."
+                  docker stop $CONTAINER_ID
+                  echo "Removing container $CONTAINER_ID..."
+                  docker rm $CONTAINER_ID
+              done
+          done
           
           # Kill any existing SSH tunnels for this port
           pkill -f "ssh -R $EXPOSED_PORT:localhost:$EXPOSED_PORT serveo.net"
@@ -85,7 +95,15 @@ runs:
             sudo docker run -d -p $EXPOSED_PORT:$EXPOSED_PORT -v $(pwd)/$DIR:/app -w /app --name $REPO_DIR $ENV_VARS alpine sh -c "$START_COMMAND"
           fi
           
-          sudo docker rmi $GITHUB_BRANCH
+          # Remove images with the specified label
+          IMAGES=$(docker images -q --filter "label=branch=$GITHUB_BRANCH")
+
+          while [ ! -z "$IMAGES" ]; do
+              for IMAGE_ID in $IMAGES; do
+                  echo "Removing image $IMAGE_ID..."
+                  docker rmi $IMAGE_ID
+              done
+          done
 
           cd ..
           rm -rf temp
