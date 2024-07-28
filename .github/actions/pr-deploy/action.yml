@@ -116,18 +116,18 @@ runs:
 
           echo "REPO DIR: $REPO_DIR"
           git clone --single-branch --branch $GITHUB_HEAD_REF $GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git
-          mv flask-example $REPO_DIR
-          cd $REPO_DIR
+          mv flask-example temp
+          cd temp
           
           if [ -n "$DOCKERFILE" ]; then
-            sudo docker build --label branch=${GITHUB_HEAD_REF} -t $IMAGE_NAME .
-            sudo docker run -d --label branch=${GITHUB_HEAD_REF} -p $EXPOSED_PORT:$EXPOSED_PORT $IMAGE_NAME
+            sudo docker build --label branch=${GITHUB_HEAD_REF} -t base .
+            sudo docker run -d --label branch=${GITHUB_HEAD_REF} -p $EXPOSED_PORT:$EXPOSED_PORT base
           else
             sudo docker run -d -p $EXPOSED_PORT:$EXPOSED_PORT -v $(pwd)/$DIR:/app -w /app --name $REPO_DIR $ENV_VARS alpine sh -c "$START_COMMAND"
           fi
 
           cd ..
-          rm -rf $REPO_DIR
+          # rm -rf temp
 
           # Set up tunneling using Serveo with a random high-numbered port
           RANDOM_PORT=$((RANDOM % 10000 + 50000))
