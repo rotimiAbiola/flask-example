@@ -110,15 +110,14 @@ runs:
         fi
         
         $SSH_CMD << EOF   
-          TIMESTAMP=$(date "+%Y%m%d%H%M%S")   
-          REPO_DIR="${GITHUB_REPOSITORY##*/}-${GITHUB_HEAD_REF}"
-          echo "REPO DIR: $REPO_DIR"
+          export TIMESTAMP=$(date "+%Y%m%d%H%M%S")   
+          export REPO_DIR="${GITHUB_REPOSITORY##*/}-${GITHUB_HEAD_REF}"
+          export IMAGE_NAME="${GITHUB_HEAD_REF}${TIMESTAMP}"
 
+          echo "REPO DIR: $REPO_DIR"
           git clone --single-branch --branch $GITHUB_HEAD_REF $GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git
           mv flask-example $REPO_DIR
           cd $REPO_DIR
-
-          IMAGE_NAME="${GITHUB_HEAD_REF}${TIMESTAMP}"
           
           if [ -n "$DOCKERFILE" ]; then
             sudo docker build --label branch=${GITHUB_HEAD_REF} -t $IMAGE_NAME .
