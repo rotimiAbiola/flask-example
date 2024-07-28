@@ -60,8 +60,8 @@ runs:
           # REPO_DIR="${GITHUB_REPOSITORY##*/}-${GITHUB_HEAD_REF}"
 
           
-          git clone -b testingabas1234 "https://github.com/Data-Bishop/flask-example.git" temp/
-          cd temp
+          git clone --branch testingpr "https://github.com/Data-Bishop/flask-example.git"
+          cd flask-example
           
           if ! command -v docker &> /dev/null; then
             sudo apt-get update
@@ -79,9 +79,9 @@ runs:
           while [ ! -z "$CONTAINERS" ]; do
               for CONTAINER_ID in $CONTAINERS; do
                   echo "Stopping container $CONTAINER_ID..."
-                  docker stop $CONTAINER_ID
+                  sudo docker stop $CONTAINER_ID
                   echo "Removing container $CONTAINER_ID..."
-                  docker rm $CONTAINER_ID
+                  sudo docker rm $CONTAINER_ID
               done
           done
           
@@ -89,19 +89,19 @@ runs:
           pkill -f "ssh -R $EXPOSED_PORT:localhost:$EXPOSED_PORT serveo.net"
           
           if [ -n "$DOCKERFILE" ]; then
-            docker build --label branch=testingabas1234 -t testingabas1234 .
+            sudo docker build --label branch=testingabas1234 -t testingabas1234 .
             sudo docker run -d --label branch=testingabas1234 -p $EXPOSED_PORT:$EXPOSED_PORT testingabas1234
           else
             sudo docker run -d -p $EXPOSED_PORT:$EXPOSED_PORT -v $(pwd)/$DIR:/app -w /app --name $REPO_DIR $ENV_VARS alpine sh -c "$START_COMMAND"
           fi
           
           # Remove images with the specified label
-          IMAGES=$(docker images -q --filter "label=branch=testingabas1234")
+          IMAGES=$(sudo docker images -q --filter "label=branch=testingabas1234")
 
           while [ ! -z "$IMAGES" ]; do
               for IMAGE_ID in $IMAGES; do
                   echo "Removing image $IMAGE_ID..."
-                  docker rmi $IMAGE_ID
+                  sudo docker rmi $IMAGE_ID
               done
           done
 
