@@ -109,17 +109,18 @@ runs:
           SSH_CMD="sshpass -p $PASSWORD ssh -o StrictHostKeyChecking=no -p $PORT $USERNAME@$HOST"
         fi
         
-        $SSH_CMD << EOF      
-          # REPO_DIR="${GITHUB_REPOSITORY##*/}-${GITHUB_HEAD_REF}"
-          git clone --branch testingpr4 "https://github.com/Data-Bishop/flask-example.git"
-          cd flask-example    
+        $SSH_CMD << EOF   
+          TIMESTAMP=$(date "+%Y%m%d%H%M%S")   
+          REPO_DIR="${GITHUB_REPOSITORY##*/}-${GITHUB_HEAD_REF}"
 
-          # Kill any existing SSH tunnels for this port
-          pkill -f "ssh -R $EXPOSED_PORT:localhost:$EXPOSED_PORT serveo.net"
+          git clone --single-branch --branch $GITHUB_HEAD_REF $GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git $REPO_DIR
+          cd $REPO_DIR 
+
+          IMAGE_NAME="${GITHUB_HEAD_REF}${TIMESTAMP}"
           
           if [ -n "$DOCKERFILE" ]; then
-            sudo docker build --label branch=testingabas1234 -t testingabas1234 .
-            sudo docker run -d --label branch=testingabas1234 -p $EXPOSED_PORT:$EXPOSED_PORT testingabas1234
+            sudo docker build --label branch=${GITHUB_HEAD_REF} -t $IMAGE_NAME .
+            sudo docker run -d --label branch=${GITHUB_HEAD_REF} -p $EXPOSED_PORT:$EXPOSED_PORT $IMAGE_NAME
           else
             sudo docker run -d -p $EXPOSED_PORT:$EXPOSED_PORT -v $(pwd)/$DIR:/app -w /app --name $REPO_DIR $ENV_VARS alpine sh -c "$START_COMMAND"
           fi
@@ -129,7 +130,7 @@ runs:
 
           # Set up tunneling using Serveo with a random high-numbered port
           RANDOM_PORT=$((RANDOM % 10000 + 50000))
-          nohup ssh -tt -o StrictHostKeyChecking=no -R $RANDOM_PORT:localhost:$EXPOSED_PORT serveo.net > serveo_output.log 2>&1 &
+          nohup ssh -tt -o StrictHostKeyChecking=no -R 80:51.20.254.219:$EXPOSED_PORT serveo.net > serveo_output.log 2>&1 &
           sleep 30
           SERVEO_URL=$(grep -oP 'Forwarding.*?https://\K[^ ]+' serveo_output.log | tail -n 1)
           echo "Deployment URL: $SERVEO_URL"
