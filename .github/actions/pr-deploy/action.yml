@@ -111,9 +111,13 @@ runs:
         fi
         
         $SSH_CMD << EOF
-          export TIMESTAMP=$(date "+%Y%m%d%H%M%S")  
-          export REPO_DIR="${GITHUB_REPOSITORY##*/}-${GITHUB_HEAD_REF}"
-          export IMAGE_NAME="${GITHUB_HEAD_REF}${TIMESTAMP}"
+          TIMESTAMP=$(date "+%Y%m%d%H%M%S")  
+          REPO_DIR="${GITHUB_REPOSITORY##*/}-${GITHUB_HEAD_REF}"
+          IMAGE_NAME="${GITHUB_HEAD_REF}$\{TIMESTAMP}"
+
+          echo \$TIMESTAMP
+          echo \$REPO_DIR
+          echo \$IMAGE_NAME
 
           git clone --single-branch --branch $GITHUB_HEAD_REF $GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git
           mv flask-example temp
