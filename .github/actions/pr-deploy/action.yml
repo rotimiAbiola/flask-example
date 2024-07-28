@@ -60,7 +60,7 @@ runs:
           # REPO_DIR="${GITHUB_REPOSITORY##*/}-${GITHUB_HEAD_REF}"
 
           GITHUB_BRANCH = testingabas123
-          git clone -b $GITHUB_BRANCH https://github.com/Data-Bishop/flask-example.git temp/
+          git clone -b $GITHUB_BRANCH "https://github.com/Data-Bishop/flask-example.git" temp/
           cd temp
           
           if ! command -v docker &> /dev/null; then
