@@ -60,7 +60,7 @@ runs:
           # REPO_DIR="${GITHUB_REPOSITORY##*/}-${GITHUB_HEAD_REF}"
 
           
-          git clone --branch testingpr2 "https://github.com/Data-Bishop/flask-example.git"
+          git clone --branch testingpr3 "https://github.com/Data-Bishop/flask-example.git"
           cd flask-example
           
           if ! command -v docker &> /dev/null; then
@@ -72,40 +72,40 @@ runs:
           # sudo usermod -aG docker $USER
           # newgrp docker
 
-          docker ps -aq --filter "label=branch=testingabas1234" | xargs -r docker rm -f
-          docker images -q --filter "label=branch=testingabas1234" | xargs -r docker rmi -f
+          # Loop through each container and stop and remove it
 
-          # Find all container IDs with the specified branch label
-          # CONTAINERS=$(sudo docker ps -q --filter "label=branch=testingabas1234")
+          CLEANUP_COMPLETE=false
 
-          # # Loop through each container and stop and remove it
-          # while [ ! -z "$CONTAINERS" ]; do
-          #     for CONTAINER_ID in $CONTAINERS; do
-          #         echo "Stopping container $CONTAINER_ID..."
-          #         sudo docker stop $CONTAINER_ID
-          #         echo "Removing container $CONTAINER_ID..."
-          #         sudo docker rm $CONTAINER_ID
-          #     done
-          # done
-          
-          # # Remove images with the specified label
-          # IMAGES=$(sudo docker images -q --filter "label=branch=testingabas1234")
+          while [ "$CLEANUP_COMPLETE" = false ]; do
+              CONTAINERS=$(sudo docker ps -aq --filter "label=branch=testingabas1234")
+              IMAGES=$(sudo docker images -q --filter "label=branch=testingabas1234")
 
-          # while [ ! -z "$IMAGES" ]; do
-          #     for IMAGE_ID in $IMAGES; do
-          #         echo "Removing image $IMAGE_ID..."
-          #         sudo docker rmi $IMAGE_ID
-          #     done
-          # done
+              if [ -z "$CONTAINERS" ] && [ -z "$IMAGES" ]; then
+                  CLEANUP_COMPLETE=true
+              else
+                for CONTAINER_ID in $CONTAINERS; do
+                    echo "Stopping and removing container $CONTAINER_ID..."
+                    sudo docker stop $CONTAINER_ID
+                    sudo docker rm -f $CONTAINER_ID
+                done
+
+                for IMAGE_ID in $IMAGES; do
+                    echo "Removing image $IMAGE_ID..."
+                    sudo docker rmi -f $IMAGE_ID
+                done
+              fi
+          done
 
           # Kill any existing SSH tunnels for this port
           pkill -f "ssh -R $EXPOSED_PORT:localhost:$EXPOSED_PORT serveo.net"
           
-          if [ -n "$DOCKERFILE" ]; then
-            sudo docker build --label branch=testingabas1234 -t testingabas1234 .
-            sudo docker run -d --label branch=testingabas1234 -p $EXPOSED_PORT:$EXPOSED_PORT testingabas1234
-          else
-            sudo docker run -d -p $EXPOSED_PORT:$EXPOSED_PORT -v $(pwd)/$DIR:/app -w /app --name $REPO_DIR $ENV_VARS alpine sh -c "$START_COMMAND"
+          if [ "$CLEANUP_COMPLETE" = true ]; then
+            if [ -n "$DOCKERFILE" ]; then
+              sudo docker build --label branch=testingabas1234 -t testingabas1234 .
+              sudo docker run -d --label branch=testingabas1234 -p $EXPOSED_PORT:$EXPOSED_PORT testingabas1234
+            else
+              sudo docker run -d -p $EXPOSED_PORT:$EXPOSED_PORT -v $(pwd)/$DIR:/app -w /app --name $REPO_DIR $ENV_VARS alpine sh -c "$START_COMMAND"
+            fi
           fi
 
           cd ..
