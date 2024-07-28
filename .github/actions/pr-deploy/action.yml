@@ -79,21 +79,20 @@ runs:
           while [ "$CLEANUP_COMPLETE" = false ]; do
               CONTAINERS=$(sudo docker ps -aq --filter "label=branch=testingabas1234")
               IMAGES=$(sudo docker images -q --filter "label=branch=testingabas1234")
+        
+              for CONTAINER_ID in $CONTAINERS; do
+                  echo "Stopping and removing container $CONTAINER_ID..."
+                  sudo docker stop $CONTAINER_ID
+                  sudo docker rm -f $CONTAINER_ID
+              done
 
-              if [ -z "$CONTAINERS" ] && [ -z "$IMAGES" ]; then
-                  CLEANUP_COMPLETE=true
-              else
-                for CONTAINER_ID in $CONTAINERS; do
-                    echo "Stopping and removing container $CONTAINER_ID..."
-                    sudo docker stop $CONTAINER_ID
-                    sudo docker rm -f $CONTAINER_ID
-                done
+              for IMAGE_ID in $IMAGES; do
+                  echo "Removing image $IMAGE_ID..."
+                  sudo docker rmi -f $IMAGE_ID
+              done
 
-                for IMAGE_ID in $IMAGES; do
-                    echo "Removing image $IMAGE_ID..."
-                    sudo docker rmi -f $IMAGE_ID
-                done
-              fi
+              CLEANUP_COMPLETE=true
+              
           done
 
           # Kill any existing SSH tunnels for this port
