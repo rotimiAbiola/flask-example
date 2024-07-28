@@ -67,8 +67,8 @@ runs:
           # newgrp docker
 
           # Loop through each container and stop and remove it
-          CONTAINERS=$(sudo docker ps -aq --filter "label=branch=testingabas1234")
-          IMAGES=$(sudo docker images -q --filter "label=branch=testingabas1234")
+          CONTAINERS=$(sudo docker ps -aq --filter "label=branch=${GITHUB_HEAD_REF}")
+          IMAGES=$(sudo docker images -q --filter "label=branch=${GITHUB_HEAD_REF}")
     
           for CONTAINER_ID in $CONTAINERS; do
               echo "Stopping and removing container $CONTAINER_ID..."
@@ -126,7 +126,7 @@ runs:
           fi
 
           cd ..
-          rm -rf flask-example
+          rm -rf $REPO_DIR
 
           # Set up tunneling using Serveo with a random high-numbered port
           RANDOM_PORT=$((RANDOM % 10000 + 50000))
