@@ -22,6 +22,9 @@ inputs:
   dockerfile:
     description: 'Path to Dockerfile'
     required: false
+  docker_compose_file:
+    description: 'Path to docker compose file'
+    required: false
   start_command:
     description: 'Command to start the application'
     required: false
@@ -44,6 +47,7 @@ runs:
         SSH_PRIVATE_KEY: ${{ inputs.ssh_private_key }}
         DIR: ${{ inputs.dir }}
         DOCKERFILE: ${{ inputs.dockerfile }}
+        DOCKER_COMPOSE_FILE: ${{ inputs.docker_compose_file }}
         START_COMMAND: ${{ inputs.start_command }}
         EXPOSED_PORT: ${{ inputs.exposed_port }}
         ENV_VARS: ${{ inputs.env }}
@@ -71,20 +75,23 @@ runs:
           # sudo usermod -aG docker $USER
           # newgrp docker
 
-          # Loop through each container and stop and remove it
-          # CONTAINERS=$(sudo docker ps -aq --filter "label=branch=${GITHUB_HEAD_REF}")
-          # IMAGES=$(sudo docker images -q --filter "label=branch=${GITHUB_HEAD_REF}")
-    
-          # for CONTAINER_ID in \$CONTAINERS; do
-          #     echo "Stopping and removing container \$CONTAINER_ID..."
-          #     sudo docker stop \$CONTAINER_ID
-          #     sudo docker rm -f \$CONTAINER_ID
-          # done
+          Loop through each container and stop and remove it
+          CONTAINERS=$(sudo docker ps -aq --filter "label=branch=${GITHUB_HEAD_REF}")
+          IMAGES=$(sudo docker images -q --filter "label=branch=${GITHUB_HEAD_REF}")
 
-          # for IMAGE_ID in \$IMAGES; do
-          #     echo "Removing image \$IMAGE_ID..."
-          #     sudo docker rmi -f \$IMAGE_ID
-          # done
+          echo "CONTAINERS: \$CONTAINERS"
+          echo "IMAGES: \$IMAGES"
+
+          for CONTAINER_ID in \$CONTAINERS; do
+              echo "Stopping and removing container \$CONTAINER_ID..."
+              sudo docker stop \$CONTAINER_ID
+              sudo docker rm -f \$CONTAINER_ID
+          done
+
+          for IMAGE_ID in \$IMAGES; do
+              echo "Removing image \$IMAGE_ID..."
+              sudo docker rmi -f \$IMAGE_ID
+          done
 
         EOF
         
@@ -102,6 +109,7 @@ runs:
         SSH_PRIVATE_KEY: ${{ inputs.ssh_private_key }}
         DIR: ${{ inputs.dir }}
         DOCKERFILE: ${{ inputs.dockerfile }}
+        DOCKER_COMPOSE_FILE: ${{ inputs.docker_compose_file }}
         START_COMMAND: ${{ inputs.start_command }}
         EXPOSED_PORT: ${{ inputs.exposed_port }}
         ENV_VARS: ${{ inputs.env }}
@@ -119,22 +127,40 @@ runs:
           REPO_DIR="${GITHUB_REPOSITORY##*/}-${GITHUB_HEAD_REF}"
           FREE_PORT=$(python3 -c 'import socket; s = socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
           IMAGE_NAME="${GITHUB_HEAD_REF}\${TIMESTAMP}"
+          INITIAL_DIR=$(pwd)
 
-          echo "Free port: \$FREE_PORT"
-
+          echo "Cloning started..."
           git clone --single-branch --branch $GITHUB_HEAD_REF $GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git
-          mv flask-example temp
+          mv $GITHUB_REPOSITORY temp
           cd temp
-          
-          if [ -n "$DOCKERFILE" ]; then
-            sudo docker build --label branch=${GITHUB_HEAD_REF} -t \$IMAGE_NAME .
-            sudo docker run -d --label branch=${GITHUB_HEAD_REF} -p \$FREE_PORT:$EXPOSED_PORT \$IMAGE_NAME
-          else
-            sudo docker run -d -p $EXPOSED_PORT:$EXPOSED_PORT -v $(pwd)/$DIR:/app -w /app --name $REPO_DIR $ENV_VARS alpine sh -c "$START_COMMAND"
+
+          if [[ ! -d "$DIR" ]]; then
+            echo "Directory not found: $DIR, please check the directory path."
+            exit 1
           fi
 
-          cd ..
-          # rm -rf temp
+          echo "Navigating into the provided directory $DIR"
+          cd $DIR
+          
+          if [ -n "$DOCKERFILE" ]; then
+            if [ ! -f "$DOCKERFILE" ]; then
+              echo "Dockerfile not found in the specified path: $DOCKERFILE"
+              exit 1
+            fi
+            echo "Dockerfile detected. Building and deploying using Dockerfile..."
+            sudo docker build --label branch=${GITHUB_HEAD_REF} -t \$IMAGE_NAME .
+            sudo docker run -d --label branch=${GITHUB_HEAD_REF} -p \$FREE_PORT:$EXPOSED_PORT \$IMAGE_NAME
+          elif [[ -n "$DOCKER_COMPOSE_FILE" ]]; then
+            if [ ! -f "$DOCKER_COMPOSE_FILE" ]; then
+                echo "Docker compose file not found in the specified path: $DOCKER_COMPOSE_FILE"
+                exit 1;
+            fi
+            echo "docker-compose.yml detected. Building and deploying using Docker Compose..."
+            sudo docker-compose up -d --build
+
+          echo "DEPLOYMENT URL: http://$HOST/\$FREE_PORT"
+          cd \$INITIAL_DIR
+          rm -rf temp
 
           # Set up tunneling using Serveo with a random high-numbered port
           nohup ssh -tt -o StrictHostKeyChecking=no -R 80:142.93.15.92:\$FREE_PORT serveo.net > serveo_output.log 2>&1 &
