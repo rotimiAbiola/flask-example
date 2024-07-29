@@ -161,6 +161,7 @@ runs:
           fi
 
           echo "DEPLOYMENT URL: http://$HOST/\$FREE_PORT"
+          echo "INITIAL DIR: \$INITIAL_DIR"
           cd \$INITIAL_DIR
           rm -rf temp
 
