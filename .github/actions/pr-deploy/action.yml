@@ -128,7 +128,7 @@ runs:
           REPO_NAME=${GITHUB_REPOSITORY##*/}
           FREE_PORT=$(python3 -c 'import socket; s = socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
           IMAGE_NAME="${GITHUB_HEAD_REF}\${TIMESTAMP}"
-          INITIAL_DIR=$(pwd)
+          INITIAL_DIR=\$(pwd)
 
           echo "Cloning started..."
           git clone --single-branch --branch $GITHUB_HEAD_REF $GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git
