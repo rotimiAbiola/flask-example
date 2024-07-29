@@ -9,7 +9,7 @@ inputs:
     required: true
   server_password:
     description: 'SSH password'
-    required: true
+    required: false
   server_port:
     description: 'SSH port'
     required: true

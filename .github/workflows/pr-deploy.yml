@@ -18,4 +18,5 @@ jobs:
           # ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
           dir: '.'
           dockerfile: 'Dockerfile'
+          # docker_compose_file: 'docker-compose.yml'
           exposed_port: '5000'
