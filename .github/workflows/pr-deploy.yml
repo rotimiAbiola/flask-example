@@ -1,22 +1,19 @@
 name: PR Deploy
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, reopened, closed]
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
       - name: Deploy PR
-        uses: ./
+        uses: hngprojects/pr-deploy@v1.1.6
         with:
-          server_host: ${{ secrets.HOST }}
-          server_username: ${{ secrets.USERNAME }}
-          server_password: ${{ secrets.PASSWORD }}
-          server_port: ${{ secrets.PORT }}
-          # ssh_private_key: ${{ secrets.SSH_PRIVATE_KEY }}
-          dir: '.'
+          server_host: ${{ secrets.SERVER_HOST }}
+          server_username: ${{ secrets.SERVER_USERNAME }}
+          server_password: ${{ secrets.SERVER_PASSWORD }}
+          server_port: ${{ secrets.SERVER_PORT }}
+          context: '.'
           dockerfile: 'Dockerfile'
-          # docker_compose_file: 'docker-compose.yml'
           exposed_port: '5000'
